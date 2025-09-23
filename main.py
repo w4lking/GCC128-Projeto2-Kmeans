@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 from sklearn.metrics import silhouette_score
@@ -19,7 +18,6 @@ class KMeans_Do_Zero:
     def fit(self, X):
         # inicializar centróides aleatoriamente
         np.random.seed(42)  # fixar para reprodutibilidade
-
         idx = np.random.choice(len(X), self.n_clusters, replace=False)
         self.centroids = X[idx, :]
 
@@ -48,7 +46,7 @@ class KMeans_Do_Zero:
         return np.argmin(distancias, axis=1)
 
 
-# ====== CARREGAR DEDOS ======
+# ====== CARREGAR DADOS ======
 df = pd.read_csv("data/iris.csv")
 X = df[["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"]].values
 
@@ -74,12 +72,26 @@ for k in [3, 5]:
 
 
 # ====== PCA para visualização ======
-pca = PCA(n_components=2)
-X_pca = pca.fit_transform(X)
+
+# --- 1 componente ---
+pca_1d = PCA(n_components=1)
+X_pca_1d = pca_1d.fit_transform(X)
+centroids_pca_1d = pca_1d.transform(meu_kmeans.centroids)
+
+plt.figure(figsize=(10, 3))
+plt.scatter(X_pca_1d, np.zeros_like(X_pca_1d), c=meu_kmeans.labels_, cmap="viridis", s=40)
+plt.scatter(centroids_pca_1d, np.zeros_like(centroids_pca_1d), c="red", marker="X", s=200)
+plt.title("Clusters (KMeans Do Zero) com PCA (1 componente)")
+plt.yticks([])  # remove eixo Y
+plt.show()
+
+# --- 2 componentes ---
+pca_2d = PCA(n_components=2)
+X_pca_2d = pca_2d.fit_transform(X)
+centroids_pca_2d = pca_2d.transform(meu_kmeans.centroids)
 
 plt.figure(figsize=(8, 6))
-plt.scatter(X_pca[:, 0], X_pca[:, 1], c=meu_kmeans.labels_, cmap="viridis", s=40)
-centroids_pca = pca.transform(meu_kmeans.centroids)
-plt.scatter(centroids_pca[:, 0], centroids_pca[:, 1], c="red", marker="X", s=200)
+plt.scatter(X_pca_2d[:, 0], X_pca_2d[:, 1], c=meu_kmeans.labels_, cmap="viridis", s=40)
+plt.scatter(centroids_pca_2d[:, 0], centroids_pca_2d[:, 1], c="red", marker="X", s=200)
 plt.title("Clusters (KMeans Do Zero) com PCA (2 componentes)")
 plt.show()
