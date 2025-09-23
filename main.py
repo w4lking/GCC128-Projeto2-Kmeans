@@ -16,24 +16,19 @@ class KMeans_Do_Zero:
         self.labels_ = None
 
     def fit(self, X):
-        # inicializar centróides aleatoriamente
-        np.random.seed(42)  # fixar para reprodutibilidade
+        np.random.seed(42)  # reprodutibilidade
         idx = np.random.choice(len(X), self.n_clusters, replace=False)
         self.centroids = X[idx, :]
 
         for _ in range(self.max_iter):
-            # calcular distância de cada ponto a cada centróide
             distancias = np.linalg.norm(X[:, np.newaxis] - self.centroids, axis=2)
-            # atribuir cada ponto ao cluster mais próximo
             self.labels_ = np.argmin(distancias, axis=1)
 
-            # recalcular centróides
             novos_centroids = np.array([
                 X[self.labels_ == i].mean(axis=0) if len(X[self.labels_ == i]) > 0 else self.centroids[i]
                 for i in range(self.n_clusters)
             ])
 
-            # verificar convergência
             if np.all(np.abs(novos_centroids - self.centroids) < self.tol):
                 break
 
@@ -51,6 +46,10 @@ df = pd.read_csv("data/iris.csv")
 X = df[["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"]].values
 
 # ====== EXPERIMENTOS ======
+melhor_k = None
+melhor_silhouette = -1
+melhor_modelo = None
+
 for k in [3, 5]:
     print(f"\n==== K = {k} ====")
 
@@ -62,7 +61,12 @@ for k in [3, 5]:
     sil_do_zero = silhouette_score(X, meu_kmeans.labels_)
     print(f"Do zero: silhouette = {sil_do_zero:.4f}, tempo = {tempo_do_zero:.4f}s")
 
-    # sklearn
+    if sil_do_zero > melhor_silhouette:
+        melhor_silhouette = sil_do_zero
+        melhor_k = k
+        melhor_modelo = meu_kmeans
+
+    # sklearn (apenas comparação)
     start_time = time.time()
     kmeans_sklearn = KMeans_sklearn(n_clusters=k, random_state=42).fit(X)
     end_time = time.time()
@@ -70,28 +74,30 @@ for k in [3, 5]:
     sil_sklearn = silhouette_score(X, kmeans_sklearn.labels_)
     print(f"Sklearn: silhouette = {sil_sklearn:.4f}, tempo = {tempo_sklearn:.4f}s")
 
+print(f"\n>>> Melhor K encontrado = {melhor_k} com silhouette = {melhor_silhouette:.4f}\n")
 
-# ====== PCA para visualização ======
+
+# ====== PCA para visualização com o melhor K ======
 
 # --- 1 componente ---
 pca_1d = PCA(n_components=1)
 X_pca_1d = pca_1d.fit_transform(X)
-centroids_pca_1d = pca_1d.transform(meu_kmeans.centroids)
+centroids_pca_1d = pca_1d.transform(melhor_modelo.centroids)
 
 plt.figure(figsize=(10, 3))
-plt.scatter(X_pca_1d, np.zeros_like(X_pca_1d), c=meu_kmeans.labels_, cmap="viridis", s=40)
+plt.scatter(X_pca_1d, np.zeros_like(X_pca_1d), c=melhor_modelo.labels_, cmap="viridis", s=40)
 plt.scatter(centroids_pca_1d, np.zeros_like(centroids_pca_1d), c="red", marker="X", s=200)
-plt.title("Clusters (KMeans Do Zero) com PCA (1 componente)")
-plt.yticks([])  # remove eixo Y
+plt.title(f"Clusters (KMeans Do Zero) com PCA (1 componente) - K={melhor_k}")
+plt.yticks([])
 plt.show()
 
 # --- 2 componentes ---
 pca_2d = PCA(n_components=2)
 X_pca_2d = pca_2d.fit_transform(X)
-centroids_pca_2d = pca_2d.transform(meu_kmeans.centroids)
+centroids_pca_2d = pca_2d.transform(melhor_modelo.centroids)
 
 plt.figure(figsize=(8, 6))
-plt.scatter(X_pca_2d[:, 0], X_pca_2d[:, 1], c=meu_kmeans.labels_, cmap="viridis", s=40)
+plt.scatter(X_pca_2d[:, 0], X_pca_2d[:, 1], c=melhor_modelo.labels_, cmap="viridis", s=40)
 plt.scatter(centroids_pca_2d[:, 0], centroids_pca_2d[:, 1], c="red", marker="X", s=200)
-plt.title("Clusters (KMeans Do Zero) com PCA (2 componentes)")
+plt.title(f"Clusters (KMeans Do Zero) com PCA (2 componentes) - K={melhor_k}")
 plt.show()
